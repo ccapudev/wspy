@@ -5,6 +5,9 @@ import json
 import asyncio
 import websockets
 import logging
+from routers import (
+    ServerProtocol, register_url, register_origin, ORIGINS
+)
 
 
 logger = logging.getLogger('websockets')
@@ -15,6 +18,18 @@ conexiones = dict()
 USERS = set()
 
 
+'''
+    Configuracion:
+    register_url('/path/for/ws/protocol/')
+    register_origin('mysite.com.pe')
+'''
+
+
+# Configuracion
+register_url('^/ws/0/$')
+register_origin('http://devperu.org.pe:8000')
+
+
 async def register(websocket, path):
     ''' Metodo que agrega al usuario a un conjunto general 'USERS'
     y los agrupa por path de conexion.
@@ -22,7 +37,7 @@ async def register(websocket, path):
     :param path:
     :return: None
     '''
-    # print(dir(websocket))
+    print(dir(websocket))
     if conexiones.get(path) is None:
         conexiones[path] = set()
     conexiones[path].add(websocket)
@@ -70,7 +85,10 @@ async def main(websocket, path):
 
 def main_module():
     try:
-        start_server = websockets.serve(main, 'localhost', 8765)
+        start_server = websockets.serve(
+            main, 'localhost', 8765, create_protocol=ServerProtocol,
+            origins=ORIGINS
+        )
 
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
@@ -80,6 +98,7 @@ def main_module():
         logger.warning("Proceso WebSocket terminado")
     except Exception as e:
         logger.warning("Conexion Interrupted {}".format(e,))
+
 
 
 if __name__ == "__main__":
