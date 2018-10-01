@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # WS server example
+import sys, getopt
 import json
 import asyncio
 import websockets
@@ -28,6 +29,7 @@ USERS = set()
 # Configuracion
 register_url('^/ws/0/$')
 register_origin('http://devperu.org.pe:8000')
+register_origin('')
 
 
 async def register(websocket, path):
@@ -37,7 +39,7 @@ async def register(websocket, path):
     :param path:
     :return: None
     '''
-    print(dir(websocket))
+    # print(dir(websocket))
     if conexiones.get(path) is None:
         conexiones[path] = set()
     conexiones[path].add(websocket)
@@ -65,7 +67,7 @@ def users_active():
 
 async def send_data(jsondata, path):
     json_response = json.dumps(jsondata)
-    print("Sending => ",json_response)
+    # print("Sending => ",json_response)
     await asyncio.wait([u.send(json_response) for u in users_by_path(path)])
 
 
@@ -76,17 +78,17 @@ async def main(websocket, path):
         try:
             json_data = json.loads(raw_data)
             await send_data(json_data, path)
-            print("Sending")
+            # print("Sending")
         except Exception as e:
             print("Discard Conexion e => ", str(e))
             await unregister(websocket, path)
 
 
 
-def main_module():
+def main_module(host='localhost', port=8765):
     try:
         start_server = websockets.serve(
-            main, 'localhost', 8765, create_protocol=ServerProtocol,
+            main, host, port, create_protocol=ServerProtocol,
             origins=ORIGINS
         )
 
@@ -100,6 +102,27 @@ def main_module():
         logger.warning("Conexion Interrupted {}".format(e,))
 
 
+def procesar_argumentos(argv=tuple()):
+    host = 'localhost'
+    port = 8765
+    try:
+        opts, args = getopt.getopt(argv,"h:p:",["host=","port="])
+    except getopt.GetoptError:
+        print('--host=localhost --port=8000')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '--help':
+            print('--host=localhost --port=8000')
+            sys.exit()
+        elif opt in ("-p", "--port"):
+            port = arg
+        elif opt in ("--host", "-h"):
+            host = arg
+    register_origin(f'http://{host}:{port}')
+    register_origin(f'https://{host}:{port}')
+    return host, port
+
 
 if __name__ == "__main__":
-    main_module()
+    _host, _port = procesar_argumentos(sys.argv[1:])
+    main_module(_host, _port)

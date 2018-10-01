@@ -1,6 +1,11 @@
 import websockets
+import logging
 import http
 import re
+
+
+logger = logging.getLogger('websockets')
+logger.setLevel(logging.INFO)
 
 ROUTERS = [
     # '^/ws/(?P<year>[0-9]{4})/$'
@@ -37,10 +42,12 @@ class ServerProtocol(websockets.WebSocketServerProtocol):
 
 
 def register_url(uri_regex):
+    logger.info(f"Registrando UrlPattern: {uri_regex}")
     ROUTERS.append(uri_regex)
 
 
 def register_origin(origin):
+    logger.info(f"Registrando Origen: {origin}")
     ORIGINS.append(origin)
 
 
